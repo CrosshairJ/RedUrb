@@ -1,0 +1,83 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: transporte_pg
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: transporte_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: transporte_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: transporte_mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    command: mosquitto -c /mosquitto-no-auth.conf
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: transporte_rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  backend:
+    build: ./backend
+    container_name: transporte_backend
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - redis
+      - mosquitto
+      - rabbitmq
+    environment:
+      PORT: "3000"
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: admin
+      DB_PASS: admin123
+      DB_NAME: transporte_db
+      SQLITE_PATH: /app/data/transporte_local.sqlite
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      MQTT_URL: mqtt://mosquitto:1883
+      RABBIT_URL: amqp://rabbitmq:5672
+    ports:
+      - "3000:3000"
+    volumes:
+      - backend_data:/app/data
+
+  nginx:
+    build: ./frontend
+    container_name: transporte_nginx
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
+  sonarqube:
+    image: sonarqube:community
+    container_name: transporte_sonarqube
+    profiles:
+      - analisis
+    ports:
+      - "9000:9000"
+
+volumes:
+  pg_data:
+  backend_data:

@@ -1,0 +1,12 @@
+node_modules
+.pnp
+.pnp.js
+dist
+build
+.expo
+.env
+*.sqlite
+*.tsbuildinfo
+.DS_Store
+Thumbs.db
+*.log
